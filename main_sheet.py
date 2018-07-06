@@ -24,10 +24,14 @@ bot = TeleBot(TOKEN)
 gc = pygsheets.authorize(outh_file=OUTH_FILE)
 sh = gc.open('NKNbot') # Open spreadsheet and then workseet
 
+# <Worksheet '新加群名单' index:1>
+# <Worksheet '接受奖励地址' index:2>
+# <Worksheet '邀请数量统计' index:3>
 reply_wks = sh.sheet1 # reply sheet
 new_members_wks = sh.worksheet(value=1) # record new group members
-invite_wks = sh.worksheet(value=2) # count invite number 
-addr_wks = sh.worksheet(value=3) # record reward addresses
+addr_wks= sh.worksheet(value=2) # record reward addresses
+invite_wks = sh.worksheet(value=3) # count invite number 
+
 
 @bot.message_handler(commands=['start'])
 def handler_start(message):
@@ -180,12 +184,17 @@ def handle_invite_code(message):
                             timestamp_datetime(message.date), 
                             message.from_user.username, 
                             message.from_user.first_name,
-                            message.from_user.id
+                            message.from_user.id,
+                            message.text
                     ]
                     insertRow(new_members_wks, new_member_info) 
                     #add invite count for inviter
-                    row = findKey(invite_wks, message.text)
-                    new_members_wks.update_cell((row, 5), message.text)
+                    if addInviteCount(message.text) == -1:
+                        logger.info('Invalid invite code');
+                    else:
+                        logger.info('Invite count added');
+                    # row = findKey(invite_wks, message.text)
+                    # invite_wks.update_cell((row, 5), message.text)
                     logger.info(str(message.from_user.id) + ":" + message.text)
                     reply_two_languages(message, 
                         "The code is used successfully!\nIf you haven't set your reward address, you can reply your wallet address to the bot. Candies will be sent to the address after the activity.", 
@@ -207,6 +216,7 @@ def check_reward_addr(message):
         row = findKey(addr_wks, str(message.from_user.id))
         if row != -1:
             addr = addr_wks[row-1][4]
+            print(addr_wks)
             en_reply = "Your current reward address is %s\nIf you want to change the address, you can reply a new address to the bot." % addr
             cn_reply = u"当前设置的接受奖励的钱包地址为: %s\n如果你想更换钱包地址，可以给机器人回复一个新的地址" % addr 
             reply_two_languages(message, en_reply, cn_reply)
