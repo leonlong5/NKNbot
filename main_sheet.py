@@ -98,6 +98,7 @@ def get_invite_code(message):
         print(from_user)
         code = generateInviteCode("NKN", from_user.id)
         count = getInviteCount(str(from_user.id))
+        #when invite count is empty, we create a new user in invite worksheet
         if count == "":
             values = [
                 from_user.username,
@@ -109,6 +110,7 @@ def get_invite_code(message):
             ]
             insertRow(invite_wks, values)
             count = "0"
+        link = "https://t.me/NKNrobot?start="+code
         en_reply = "Your invite code is:  %s\nYou have already invited %s people" % (code, count)
         cn_reply = u"你的邀请码是:  %s\n你已经邀请了 %s 个人" % (code, count)
         reply_two_languages(message, en_reply, cn_reply)
@@ -119,6 +121,7 @@ def get_invite_code(message):
 
 @bot.message_handler(content_types=['new_chat_members'])
 def record_new_members(message):
+    print(message)
     try:
         if message.chat.title in MONITOR_GROUPS:
             logger.info('new member')
@@ -228,7 +231,7 @@ def check_reward_addr(message):
         logger.error('get reward address ERROR: %s', e)
 
 # handle reward address
-@bot.message_handler(regexp="[a-z0-9]{34}")
+@bot.message_handler(regexp="^A[A-Za-z0-9]{34}")	
 def handle_reward_addr(message):
     try:
         lock.acquire()
@@ -254,6 +257,15 @@ def handle_reward_addr(message):
     finally:
         lock.release()
 
+@bot.message_handler()
+def echo(message):
+    try:
+        logger.info(message.text)
+        reply = getValue(message.text)
+        if reply != "":
+            bot.reply_to(message, reply)
+    except Exception as e:
+        logger.error('handler message ERROR: %s', e)
 
 def findUser(wks, key):
     cell_list =wks.find(key)
