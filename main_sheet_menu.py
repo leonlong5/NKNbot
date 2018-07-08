@@ -52,28 +52,40 @@ def join_menu(bot, update):
                         text=joinNKN_menu_message(),
                         reply_markup=joinNKN_menu_keyboard())
 
+def doc_menu(bot, update):
+    try:
+        logger.info('/doc')
+        reply = getValue('/doc')
+        if reply != "":
+            query = update.callback_query
+            bot.edit_message_text(chat_id=query.message.chat_id,
+                        message_id=query.message.message_id,
+                        text=reply,
+                        reply_markup=joinNKN_menu_keyboard())
+    except Exception as e:
+        logger.error('/doc ERROR: %s', e)
+
+def myAccount_menu(bot, update):
+    try:
+        logger.info('/myAccount')
+        query = update.callback_query
+        logger.info(query.message.chat.id)
+        account = getAccount(query.message.chat.id) 
+        if account == -1:
+            reply = "You haven't join NKN group."
+        else:
+            points = getPoints(bot, query)
+            reply = "Hello %s\nYou invited %s friends\nYou have %s points" %(account[0], account[1],points)
+        bot.edit_message_text(chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    text=reply,
+                    reply_markup=joinNKN_menu_keyboard())
+    except Exception as e:
+        logger.error('/myAccount ERROR: %s', e)
+
 def points(bot, update):
-    points = 0
-    #check if user is in new invited list
-    #find will return an array contains cell qulify the key
-    # findKey will return occurance of the key
-    arr = new_members_wks.find(str(update.message.chat.id))
-    if arr:
-        label = 'E%s' % str(arr[0].row)
-        ref = new_members_wks.get_value(label)
-        logger.info(ref)
-        if ref != '':
-            points = points + 100
-    
-    #get user invite count
-    arr = invite_wks.find(str(update.message.chat.id))
-    if arr:
-        label = 'F%s' % str(arr[0].row)
-        count = invite_wks.get_value(label)
-        logger.info(count)
-        if count != '':
-            points = points + 100*int(count)
-    update.message.reply_text(points)
+    update.message.reply_text(getPoints(bot, update))
+
 
 def refer_menu(bot, update):
     try:
@@ -122,7 +134,7 @@ def second_menu_message():
 
 def refer_menu_message(code, count):
     #link = "https://t.me/NKNrobot?start="+code
-    en_reply = "Your invite code is:  %s\nYou have already invited %s people" % (code, count)
+    en_reply = "Your invite code is:  %s \nYou have already invited %s people" % (code, count)
     cn_reply = u"你的邀请码是:  %s\n你已经邀请了 %s 个人" % (code, count)
     #reply_two_languages(lan_code, en_reply, cn_reply)
     return en_reply
@@ -131,8 +143,8 @@ def refer_menu_message(code, count):
 def main_menu_keyboard():
   keyboard = [[InlineKeyboardButton('Join NKN group', callback_data='joinNKN')],
               [InlineKeyboardButton('Refer a friend', callback_data='refer')],
-              [InlineKeyboardButton('Subscribe Newsletter', callback_data='subscribe')],
-              [InlineKeyboardButton('My Account', callback_data='my'), InlineKeyboardButton('Help', callback_data='m3')]]
+              [InlineKeyboardButton('Documents', callback_data='doc')],
+              [InlineKeyboardButton('My Account', callback_data='myAccount'), InlineKeyboardButton('Help', callback_data='m3')]]
   return InlineKeyboardMarkup(keyboard)
 
 def joinNKN_menu_keyboard():
@@ -275,10 +287,9 @@ def handle_invite_code(message):
                         message.chat.id,
                         message.text
                 ]
-                print(new_member_info)
                 insertRow(new_members_wks, new_member_info) 
                 #add invite count for inviter
-                addInviteCount(message.text) 
+                addInviteCount(message.text)
                 # row = findKey(invite_wks, message.text)
                 # invite_wks.update_cell((row, 5), message.text)
                 logger.info(str(message.chat.id) + ":" + message.text)
@@ -406,13 +417,13 @@ def getInviteCount(key):
 # find user info based on user id
 def getAccount(key):
     print(key)
-    row = findKey(invite_wks, key)
+    row = findKey(invite_wks, str(key))
     print(row)
     if row != -1:
         # return reply_wks[row-1][0]
-        return invite_wks.get_value((row, 1)) # 第一列作为回复
+        return [invite_wks.get_value((row, 1)), invite_wks.get_value((row, 6))] # 第一和六列作为回复
     else:
-        return ""
+        return -1
 
 # find the corresponding reply in google doc by given key word
 def getValue(key):
@@ -449,6 +460,29 @@ def timestamp_datetime(value):
     dt = time.strftime(format, value)
     return dt
 
+def getPoints(bot, update):
+    points = 0
+    #check if user is in new invited list
+    #find will return an array contains cell qulify the key
+    # findKey will return occurance of the key
+    arr = new_members_wks.find(str(update.message.chat.id))
+    if arr:
+        label = 'E%s' % str(arr[0].row)
+        ref = new_members_wks.get_value(label)
+        logger.info(ref)
+        if ref != '':
+            points = points + 100
+    
+    #get user invite count
+    arr = invite_wks.find(str(update.message.chat.id))
+    if arr:
+        label = 'F%s' % str(arr[0].row)
+        count = invite_wks.get_value(label)
+        logger.info(count)
+        if count != '':
+            points = points + 100*int(count)
+    return points
+
 def echoMessageHandler(bot, update):
     logger.info(update.message.text)
     #if user typed in NKN code
@@ -479,7 +513,8 @@ def main():
     dp.add_handler(CallbackQueryHandler(main_menu, pattern='main'))
     dp.add_handler(CallbackQueryHandler(join_menu, pattern='joinNKN'))
     dp.add_handler(CallbackQueryHandler(refer_menu, pattern='refer'))
-        
+    dp.add_handler(CallbackQueryHandler(doc_menu, pattern='doc'))
+    dp.add_handler(CallbackQueryHandler(myAccount_menu, pattern='myAccount')) 
 
     # Start the Bot
     updater.start_polling()
