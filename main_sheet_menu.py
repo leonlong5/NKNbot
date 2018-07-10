@@ -20,6 +20,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 #initilizing lock, logger and google sheet
+LANG = 'EN'
 lock = threading.Lock()
 logger.setLevel(logging.INFO)
 gc = pygsheets.authorize(outh_file=OUTH_FILE)
@@ -43,7 +44,7 @@ def main_menu(bot, update):
   bot.edit_message_text(chat_id=query.message.chat_id,
                         message_id=query.message.message_id,
                         text=main_menu_message(),
-                        reply_markup=main_menu_keyboard())
+                        reply_markup=main_menu_keyboard(LANG))
 
 def join_menu(bot, update):
     query = update.callback_query
@@ -68,13 +69,15 @@ def doc_menu(bot, update):
 def myAccount_menu(bot, update):
     try:
         logger.info('/myAccount')
+        #query = vars(update.callback_query)
+        logger.info(update.callback_query.from_user)
         query = update.callback_query
-        logger.info(query.message.chat.id)
-        account = getAccount(query.message.chat.id) 
+        from_user = update.callback_query.from_user
+        account = getAccount(from_user.id) 
         if account == -1:
             reply = "You haven't join NKN group."
         else:
-            points = getPoints(bot, query)
+            points = getPoints(bot, from_user)
             reply = "Hello %s\nYou invited %s friends\nYou have %s points" %(account[0], account[1],points)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
@@ -83,9 +86,69 @@ def myAccount_menu(bot, update):
     except Exception as e:
         logger.error('/myAccount ERROR: %s', e)
 
-def points(bot, update):
-    update.message.reply_text(getPoints(bot, update))
+def lang_menu(bot, update):
+    try:
+        logger.info('/language')
+        query = update.callback_query
+        logger.info(query.message.from_user)
+        bot.edit_message_text(chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    text='Choose your language',
+                    reply_markup=language_menu_keyboard())
+    except Exception as e:
+        logger.error('/language ERROR: %s', e)
 
+def en_menu(bot, update):
+    try:
+        logger.info('/engilsh')
+        LANG = 'EN'
+        query = update.callback_query
+        logger.info(query.message.from_user)
+        bot.edit_message_text(chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    text=main_menu_message(),
+                    reply_markup=main_menu_keyboard())
+    except Exception as e:
+        logger.error('/engilsh ERROR: %s', e)
+
+def cn_menu(bot, update):
+    try:
+        logger.info('/chinese')
+        LANG = 'CN'
+        query = update.callback_query
+        logger.info(query.message.from_user)
+        bot.edit_message_text(chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    text=main_menu_message('CN'),
+                    reply_markup=main_menu_keyboard('CN'))
+    except Exception as e:
+        logger.error('/chinese ERROR: %s', e)
+
+def points(bot, update):
+    update.message.reply_text(getPoints(bot, update.callback_query.from_user))
+
+def reward_addr(bot, update):
+    check_reward_addr(update.message)
+# /reward_addr : check current reward address
+def check_reward_addr(message):
+    try:
+        row = findKey(invite_wks, str(message.from_user.id))
+        if row != -1:
+            addr = invite_wks.get_value((row, 8))
+            print(addr)
+            en_reply = "Your current reward address is %s\nIf you want to change the address, you can reply a new address to the bot." % addr
+            cn_reply = u"当前设置的接受奖励的钱包地址为: %s\n如果你想更换钱包地址，可以给机器人回复一个新的地址" % addr 
+            message.reply_text(en_reply)
+            #reply_two_languages(message, en_reply, cn_reply)
+        else:
+
+            en_reply = "You haven't set your reward address yet. You can reply your wallet address to the bot to set it."
+            cn_reply = "你还未设置用于接受奖励的钱包地址，你可以通过给机器人发送钱包地址来进行设置"
+            en_reply = "You haven't register for the program yet"
+            message.reply_text(en_reply)
+            reply_two_languages(message, en_reply, cn_reply)
+    except Exception as e:
+        logger.error('get reward address ERROR: %s', e)
 
 def refer_menu(bot, update):
     try:
@@ -119,13 +182,26 @@ def refer_menu(bot, update):
                         reply_markup=joinNKN_menu_keyboard())
 
 ############################# Messages #########################################
-def main_menu_message():
-    return """ Hello, I'm NKN Bot. Welcome to the NKN group. I'm here to help you know more about NKN.
+def main_menu_message(*args):
+    language = ''
+    if len(args) == 1:
+      language = args[0]
+    en_reply = """ Hello, I'm NKN Bot. Welcome to the NKN group. I'm here to help you know more about NKN.
         Here are some official links:
         NKN Official Site: https://www.nkn.org
         NKN Official Twitter: https://twitter.com/NKN_ORG/
         NKN Official Email: contact@nkn.org"""
-
+    cn_reply = """你好，我是NKN机器人，欢迎来到NKN。我会帮助你更好的了解更多有关于NKN的信息。
+        这里有一些官方链接:
+        NKN 官方网页: https://www.nkn.org
+        NKN 官方 Twitter: https://twitter.com/NKN_ORG/
+        NKN 官方 Email: contact@nkn.org"""
+    LANG = language
+    if LANG == 'CN':
+        return cn_reply
+    else:
+        return en_reply 
+    
 def joinNKN_menu_message():
     return 'English: https://t.me/nknorg \n中文群: https://t.me/nknorgCN'
 
@@ -140,56 +216,32 @@ def refer_menu_message(code, count):
     return en_reply
 
 ############################ Keyboards #########################################
-def main_menu_keyboard():
-  keyboard = [[InlineKeyboardButton('Join NKN group', callback_data='joinNKN')],
-              [InlineKeyboardButton('Refer a friend', callback_data='refer')],
-              [InlineKeyboardButton('Documents', callback_data='doc')],
-              [InlineKeyboardButton('My Account', callback_data='myAccount'), InlineKeyboardButton('Help', callback_data='m3')]]
+def main_menu_keyboard(*args):
+  language = ''
+  if len(args) == 1:
+      language = args[0]
+  menu_en = ['Join NKN group','Refer a friend', 'Documents', 'My Account', 'Language']
+  menu_cn = ['加入NKN', '邀请朋友', '文档', '我的账户', '语言']
+  menu_mes = menu_en
+  LANG = language
+  if LANG == 'CN':
+      menu_mes = menu_cn
+  logger.info(LANG)
+  keyboard = [[InlineKeyboardButton(menu_mes[0], callback_data='joinNKN')],
+              [InlineKeyboardButton(menu_mes[1], callback_data='refer')],
+              [InlineKeyboardButton(menu_mes[2], callback_data='doc')],
+              [InlineKeyboardButton(menu_mes[3], callback_data='myAccount'), InlineKeyboardButton(menu_mes[4], callback_data='Lang')]]
   return InlineKeyboardMarkup(keyboard)
+
+def language_menu_keyboard():
+    keyboard = [[InlineKeyboardButton('English', callback_data='EN'), InlineKeyboardButton('中文', callback_data='CN')],
+                [InlineKeyboardButton('Back', callback_data='main')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
 def joinNKN_menu_keyboard():
     keyboard = [[InlineKeyboardButton('Back', callback_data='main')]]
     return InlineKeyboardMarkup(keyboard)
-# @bot.message_handler(commands=['start'])
-# def handler_start(message):
-#     try:
-#         logger.info('/start')
-#         reply = getValue('/start')
-#         print(message)
-#         if reply != "":
-#             bot.send_message(message.chat.id, reply)
-#     except Exception as e:
-#         logger.error('/start ERROR: %s', e)
-
-# @bot.message_handler(commands=['help'])
-# def handler_start(message):
-#     try:
-#         logger.info('/help')
-#         reply = getValue('/help')
-#         if reply != "":
-#             bot.send_message(message.chat.id, reply)
-#     except Exception as e:
-#         logger.error('/help ERROR: %s', e)
-
-# @bot.message_handler(commands=['doc'])
-# def handler_start(message):
-#     try:
-#         logger.info('/doc')
-#         reply = getValue('/doc')
-#         if reply != "":
-#             bot.send_message(message.chat.id, reply)
-#     except Exception as e:
-#         logger.error('/doc ERROR: %s', e)
-
-# @bot.message_handler(commands=['MyAccount'])
-# def handler_start(message):
-#     try:
-#         logger.info('/MyAccount')
-#         reply = getAccount(str(message.from_user.id))
-#         if reply != "":
-#             bot.send_message(message.chat.id, "Username: "+reply)
-#     except Exception as e:
-#         logger.error('/doc ERROR: %s', e)
 
 # @bot.message_handler(commands=['faq'])
 # def send_faq(message):
@@ -207,45 +259,46 @@ def joinNKN_menu_keyboard():
 #         logger.error('/faq ERROR: %s', e)
 
 # @bot.message_handler(content_types=['new_chat_members'])
-# def record_new_members(message):
-#     print(message)
-#     try:
-#         if message.chat.title in MONITOR_GROUPS:
-#             logger.info('new member')
-#             for member in message.new_chat_members:
-#                 try:
-#                     lock.acquire()
-#                     logger.info(member)
-#                     if findKey(new_members_wks, str(member.id)) == -1: # avoid recording users that have already existed
-#                         # code = ""
-#                         # if message.from_user.id != member.id:  # someone invites a new member
-#                         #     from_user = message.from_user
-#                         #     logger.info(from_user)
-#                         #     code = generateInviteCode("NKN", from_user.id)
-#                         #     if addInviteCount(code) == -1: # inviter hasn't registered yet
-#                         #         from_user_info = [
-#                         #             from_user.username,
-#                         #             from_user.first_name,
-#                         #             from_user.last_name,
-#                         #             from_user.id,
-#                         #             code, 
-#                         #             1
-#                         #         ]
-#                         #         insertRow(invite_wks, from_user_info) # register inviter
-#                         new_member_info = [
-#                             timestamp_datetime(message.date), 
-#                             member.username, 
-#                             member.first_name,
-#                             member.id,
-#                             ""
-#                         ]
-#                         insertRow(new_members_wks, new_member_info) # record new member's infomation
-#                 except Exception as e:
-#                     raise
-#                 finally:
-#                     lock.release()
-#     except Exception as e:
-#         logger.error('record new members ERROR: %s', e)
+def record_new_members(bot, update):
+    logger.info(update.message)
+    message = update.message
+    try:
+        if message.chat.title in MONITOR_GROUPS:
+            logger.info('new member joined')
+            for member in message.new_chat_members:
+                try:
+                    lock.acquire()
+                    logger.info(member)
+                    if findKey(new_members_wks, str(member.id)) == -1: # avoid recording users that have already existed
+                        # code = ""
+                        # if message.from_user.id != member.id:  # someone invites a new member
+                        #     from_user = message.from_user
+                        #     logger.info(from_user)
+                        #     code = generateInviteCode("NKN", from_user.id)
+                        #     if addInviteCount(code) == -1: # inviter hasn't registered yet
+                        #         from_user_info = [
+                        #             from_user.username,
+                        #             from_user.first_name,
+                        #             from_user.last_name,
+                        #             from_user.id,
+                        #             code, 
+                        #             1
+                        #         ]
+                        #         insertRow(invite_wks, from_user_info) # register inviter
+                        new_member_info = [
+                            json_serial(message.date),
+                            member.username, 
+                            member.first_name,
+                            member.id,
+                            "None"
+                        ]
+                        insertRow(new_members_wks, new_member_info) # record new member's infomation
+                except Exception as e:
+                    raise
+                finally:
+                    lock.release()
+    except Exception as e:
+        logger.error('record new members ERROR: %s', e)
 
 # # handle invite code
 # @bot.message_handler(regexp="^NKN[A-F0-9]{5}")
@@ -309,50 +362,39 @@ def handle_invite_code(message):
     except Exception as e:
         logger.error('use invite code ERROR: %s', e)
 
-# # /reward_addr : check current reward address
-# @bot.message_handler(commands=['reward_addr'])
-# def check_reward_addr(message):
-#     try:
-#         row = findKey(addr_wks, str(message.from_user.id))
-#         if row != -1:
-#             addr = addr_wks[row-1][4]
-#             print(addr_wks)
-#             en_reply = "Your current reward address is %s\nIf you want to change the address, you can reply a new address to the bot." % addr
-#             cn_reply = u"当前设置的接受奖励的钱包地址为: %s\n如果你想更换钱包地址，可以给机器人回复一个新的地址" % addr 
-#             reply_two_languages(message, en_reply, cn_reply)
-#         else:
-#             en_reply = "You haven't set your reward address yet. You can reply your wallet address to the bot to set it."
-#             cn_reply = "你还未设置用于接受奖励的钱包地址，你可以通过给机器人发送钱包地址来进行设置"
-#             reply_two_languages(message, en_reply, cn_reply)
-#     except Exception as e:
-#         logger.error('get reward address ERROR: %s', e)
+
 
 # # handle reward address
 # @bot.message_handler(regexp="^A[A-Za-z0-9]{34}")	
-# def handle_reward_addr(message):
-#     try:
-#         lock.acquire()
-#         from_user = message.from_user
-#         row = findKey(addr_wks, str(from_user.id))
-#         if row != -1:
-#             addr_wks.update_cell((row, 5), message.text)
-#         else:
-#             addr_info = [
-#                 from_user.username,
-#                 from_user.first_name,
-#                 from_user.last_name,
-#                 from_user.id,
-#                 message.text
-#             ]
-#             insertRow(addr_wks, addr_info)
-#         reply_two_languages(message, 
-#             "Reward address is set successfully!\nYou can type /reward_addr to check your current reward address.", 
-#             "接受奖励的钱包地址设置成功!\n你可以输入 /reward_addr 来查看当前设置的地址"
-#         )
-#     except Exception as e:
-#         logger.error('set reward address ERROR: %s', e)
-#     finally:
-#         lock.release()
+def handle_reward_addr(message):
+    try:
+        lock.acquire()
+        #convert object ot dict
+        #message = vars(message)
+        logger.info(message.from_user)
+        from_user = message.from_user
+        row = findKey(invite_wks, str(from_user.id))
+        if row != -1:
+            invite_wks.update_cell((row, 8), message.text)
+            message.reply_text("Reward address is set successfully!\nYou can type /reward_addr to check your current reward address.")
+        # reply_two_languages(message, 
+        #     "Reward address is set successfully!\nYou can type /reward_addr to check your current reward address.", 
+        #     "接受奖励的钱包地址设置成功!\n你可以输入 /reward_addr 来查看当前设置的地址"
+        # )
+        else:
+            # addr_info = [
+            #     from_user.username,
+            #     from_user.first_name,
+            #     from_user.last_name,
+            #     from_user.id,
+            #     message.text
+            # ]
+            # insertRow(addr_wks, addr_info)
+            message.reply_text("Please register the program first")
+    except Exception as e:
+        logger.error('set reward address ERROR: %s', e)
+    finally:
+        lock.release()
 
 def echo(bot, update):
     try:
@@ -444,11 +486,10 @@ def getFaqList():
     return faq_list
 
 def reply_two_languages(message, en_reply, cn_reply):
-    return en_reply
-    #if message.from_user.language_code == "zh-CN":
-        #bot.reply_to(message, cn_reply)
-    #else:
-        #bot.reply_to(message, en_reply)
+    if message.from_user.language_code == "zh-CN":
+        bot.reply_to(message, cn_reply)
+    else:
+        bot.reply_to(message, en_reply)
 
 def timestamp_datetime(value):
     format = '%Y-%m-%d %H:%M:%S'
@@ -460,24 +501,25 @@ def timestamp_datetime(value):
     dt = time.strftime(format, value)
     return dt
 
-def getPoints(bot, update):
+def getPoints(bot, from_user):
     points = 0
     #check if user is in new invited list
     #find will return an array contains cell qulify the key
-    # findKey will return occurance of the key
-    arr = new_members_wks.find(str(update.message.chat.id))
-    if arr:
-        label = 'E%s' % str(arr[0].row)
-        ref = new_members_wks.get_value(label)
+    #findKey will return the row number
+    #arr = new_members_wks.find(str(from_user.id))
+    row = findKey(new_members_wks, str(from_user.id))
+    logger.info(row)
+    if row != -1:
+        ref = new_members_wks.get_value((row, 5))
         logger.info(ref)
-        if ref != '':
+        if ref != 'None':
             points = points + 100
     
     #get user invite count
-    arr = invite_wks.find(str(update.message.chat.id))
-    if arr:
-        label = 'F%s' % str(arr[0].row)
-        count = invite_wks.get_value(label)
+    #arr = invite_wks.find(str(from_user.id))
+    row = findKey(invite_wks, str(from_user.id))
+    if row != -1:
+        count = invite_wks.get_value((row, 6))
         logger.info(count)
         if count != '':
             points = points + 100*int(count)
@@ -488,9 +530,12 @@ def echoMessageHandler(bot, update):
     #if user typed in NKN code
     msg = update.message.text
     pattern = re.compile("^NKN[A-F0-9]{5}")
+    addrPattern = re.compile("[A-Za-z0-9]{34}")
     if pattern.match(msg):
         handle_invite_code(update.message)
         #update.message.reply_text("code...")
+    if addrPattern.match(msg):
+        handle_reward_addr(update.message)
 
 ############################# App entry #########################################
 def main():
@@ -505,9 +550,10 @@ def main():
     dp.add_handler(CommandHandler('start', start))
     dp.add_handler(CommandHandler('help', help))
     dp.add_handler(CommandHandler('points', points))
-
+    dp.add_handler(CommandHandler('reward_addr', reward_addr))
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echoMessageHandler))
+    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, record_new_members))
 
     # menu handler
     dp.add_handler(CallbackQueryHandler(main_menu, pattern='main'))
@@ -515,6 +561,11 @@ def main():
     dp.add_handler(CallbackQueryHandler(refer_menu, pattern='refer'))
     dp.add_handler(CallbackQueryHandler(doc_menu, pattern='doc'))
     dp.add_handler(CallbackQueryHandler(myAccount_menu, pattern='myAccount')) 
+    dp.add_handler(CallbackQueryHandler(lang_menu, pattern='Lang')) 
+    dp.add_handler(CallbackQueryHandler(en_menu, pattern='EN')) 
+    dp.add_handler(CallbackQueryHandler(cn_menu, pattern='CN')) 
+    
+    
 
     # Start the Bot
     updater.start_polling()

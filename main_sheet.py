@@ -18,6 +18,7 @@ lock = threading.Lock()
 logger.setLevel(logging.INFO)
 bot = TeleBot(TOKEN)
 
+
 #gc = pygsheets.authorize(service_file=SERVICE_FILE)
 #sh = gc.open_by_key(SHEET_KEY)
 
