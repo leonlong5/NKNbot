@@ -34,25 +34,43 @@ new_members_wks = sh.worksheet(value=1) # record new group members
 addr_wks= sh.worksheet(value=2) # record reward addresses
 invite_wks = sh.worksheet(value=3) # count invite number 
 
-############################### Bot event handler ############################################
+############################### menu event handler ############################################
 def start(bot, update):
   update.message.reply_text(main_menu_message(),
                             reply_markup=main_menu_keyboard())
 
+def start1(bot, update):
+  update.message.reply_text(main_menu_message_CN(),
+                            reply_markup=main_menu_keyboard_CN())
+                            
 def main_menu(bot, update):
   query = update.callback_query
   bot.edit_message_text(chat_id=query.message.chat_id,
                         message_id=query.message.message_id,
                         text=main_menu_message(),
-                        reply_markup=main_menu_keyboard(LANG))
+                        reply_markup=main_menu_keyboard())
 
+def main_menu_CN(bot, update):
+    query = update.callback_query
+    bot.edit_message_text(chat_id=query.message.chat_id,
+                        message_id=query.message.message_id,
+                        text=main_menu_message_CN(),
+                        reply_markup=main_menu_keyboard_CN())
+  
 def join_menu(bot, update):
     query = update.callback_query
     bot.edit_message_text(chat_id=query.message.chat_id,
                         message_id=query.message.message_id,
                         text=joinNKN_menu_message(),
-                        reply_markup=joinNKN_menu_keyboard())
+                        reply_markup=back_menu_keyboard())
 
+def join_menu_CN(bot, update):
+    query = update.callback_query
+    bot.edit_message_text(chat_id=query.message.chat_id,
+                        message_id=query.message.message_id,
+                        text=joinNKN_menu_message(),
+                        reply_markup=back_menu_keyboard_CN())
+                        
 def doc_menu(bot, update):
     try:
         logger.info('/doc')
@@ -62,7 +80,32 @@ def doc_menu(bot, update):
             bot.edit_message_text(chat_id=query.message.chat_id,
                         message_id=query.message.message_id,
                         text=reply,
-                        reply_markup=joinNKN_menu_keyboard())
+                        reply_markup=back_menu_keyboard())
+    except Exception as e:
+        logger.error('/doc ERROR: %s', e)
+
+def doc_menu_CN(bot, update):
+    try:
+        logger.info('User requesting /doc_CN')
+        reply = """NKN 文档:
+        📖NKN白皮书: t.me/nknorg/43545
+        📖NKN 经济模型, 路线图: t.me/nknorg/35053
+        📖令牌信息: t.me/nknorg/35056
+        📖AMA 2018年4月: t.me/nknorg/43548
+
+        视频:
+        AMA: https://www.youtube.com/watch?v=u7K0NeTeB3M&t=129s
+        NEO Global Capital had shared about NKN: https://youtu.be/_yQGHFIaqhg?t=15m35s
+        NKN interview by Boxmining: https://www.youtube.com/watch?v=o95Uu4m_hXw&feature=youtu.be
+        Short video on NKN introduction by Boxmining: https://www.youtube.com/watch?v=aFR9k8IPEdw&feature=youtu.be
+        Live interview with Ivan on tech: https://t.co/Ch6kN0M3e4
+        Testnet preview demo: https://www.youtube.com/watch?v=0Kluy9YjTVI&feature=youtu.be"""
+        if reply != "":
+            query = update.callback_query
+            bot.edit_message_text(chat_id=query.message.chat_id,
+                        message_id=query.message.message_id,
+                        text=reply,
+                        reply_markup=back_menu_keyboard_CN())
     except Exception as e:
         logger.error('/doc ERROR: %s', e)
 
@@ -82,7 +125,27 @@ def myAccount_menu(bot, update):
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
                     text=reply,
-                    reply_markup=joinNKN_menu_keyboard())
+                    reply_markup=back_menu_keyboard())
+    except Exception as e:
+        logger.error('/myAccount ERROR: %s', e)
+        
+def myAccount_menu_CN(bot, update):
+    try:
+        logger.info('/myAccount')
+        #query = vars(update.callback_query)
+        logger.info(update.callback_query.from_user)
+        query = update.callback_query
+        from_user = update.callback_query.from_user
+        account = getAccount(from_user.id) 
+        if account == -1:
+            reply = "你还没有加入NKN群"
+        else:
+            points = getPoints(bot, from_user)
+            reply = u"您好 %s\n您目前已经邀请了 %s 位朋友\n你现在一共有 %s 分" %(account[0], account[1],points)
+        bot.edit_message_text(chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    text=reply,
+                    reply_markup=back_menu_keyboard_CN())
     except Exception as e:
         logger.error('/myAccount ERROR: %s', e)
 
@@ -100,8 +163,7 @@ def lang_menu(bot, update):
 
 def en_menu(bot, update):
     try:
-        logger.info('/engilsh')
-        LANG = 'EN'
+        logger.info('set language to engilsh')
         query = update.callback_query
         logger.info(query.message.from_user)
         bot.edit_message_text(chat_id=query.message.chat_id,
@@ -113,19 +175,18 @@ def en_menu(bot, update):
 
 def cn_menu(bot, update):
     try:
-        logger.info('/chinese')
-        LANG = 'CN'
+        logger.info('Set language to chinese')
         query = update.callback_query
         logger.info(query.message.from_user)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
-                    text=main_menu_message('CN'),
-                    reply_markup=main_menu_keyboard('CN'))
+                    text=main_menu_message_CN(),
+                    reply_markup=main_menu_keyboard_CN())
     except Exception as e:
         logger.error('/chinese ERROR: %s', e)
 
 def points(bot, update):
-    update.message.reply_text(getPoints(bot, update.callback_query.from_user))
+    update.message.reply_text(getPoints(bot, update.message.from_user))
 
 def reward_addr(bot, update):
     check_reward_addr(update.message)
@@ -188,28 +249,53 @@ def refer_menu(bot, update):
     bot.edit_message_text(chat_id=query.message.chat_id,
                         message_id=query.message.message_id,
                         text=refer_menu_message(code, count),
-                        reply_markup=joinNKN_menu_keyboard())
+                        reply_markup=back_menu_keyboard())
+
+def refer_menu_CN(bot, update):
+    try:
+        lock.acquire()
+        logger.info('/invite')
+        logger.info(update.callback_query.message.chat)
+        from_user = update.callback_query.message.chat
+        code = generateInviteCode("NKN", from_user.id)
+        count = getInviteCount(str(from_user.id))
+        #when invite count is empty, we create a new user in invite worksheet
+        if count == "":
+            values = [
+                from_user.username,
+                from_user.first_name,
+                from_user.last_name,
+                from_user.id,
+                code, 
+                0
+            ]
+            insertRow(invite_wks, values)
+            count = "0"
+        
+    except Exception as e:
+        logger.error('/invite ERROR: %s', e)
+    finally:
+        lock.release()
+    query = update.callback_query
+    bot.edit_message_text(chat_id=query.message.chat_id,
+                        message_id=query.message.message_id,
+                        text=refer_menu_message_CN(code, count),
+                        reply_markup=back_menu_keyboard_CN())
 
 ############################# Messages #########################################
-def main_menu_message(*args):
-    language = ''
-    if len(args) == 1:
-      language = args[0]
-    en_reply = """ Hello, I'm NKN Bot. Welcome to the NKN group. I'm here to help you know more about NKN.
+def main_menu_message():
+    return """ Hello, I'm NKN Bot. Welcome to the NKN group. I'm here to help you know more about NKN.
         Here are some official links:
         NKN Official Site: https://www.nkn.org
         NKN Official Twitter: https://twitter.com/NKN_ORG/
         NKN Official Email: contact@nkn.org"""
-    cn_reply = """你好，我是NKN机器人，欢迎来到NKN。我会帮助你更好的了解更多有关于NKN的信息。
+    
+def main_menu_message_CN():
+    return """你好，我是NKN机器人，欢迎来到NKN。我会帮助你更好的了解更多有关于NKN的信息。
         这里有一些官方链接:
         NKN 官方网页: https://www.nkn.org
         NKN 官方 Twitter: https://twitter.com/NKN_ORG/
         NKN 官方 Email: contact@nkn.org"""
-    LANG = language
-    if LANG == 'CN':
-        return cn_reply
-    else:
-        return en_reply 
     
 def joinNKN_menu_message():
     return 'English: https://t.me/nknorg \n中文群: https://t.me/nknorgCN'
@@ -219,38 +305,41 @@ def second_menu_message():
 
 def refer_menu_message(code, count):
     #link = "https://t.me/NKNrobot?start="+code
-    en_reply = "Your invite code is:  %s \nYou have already invited %s people" % (code, count)
-    cn_reply = u"你的邀请码是:  %s\n你已经邀请了 %s 个人" % (code, count)
-    #reply_two_languages(lan_code, en_reply, cn_reply)
-    return en_reply
+    return "Your invite code is:  %s \nYou have already invited %s people" % (code, count)
+
+def refer_menu_message_CN(code, count):
+    #link = "https://t.me/NKNrobot?start="+code
+    return u"你的邀请码是:  %s\n你已经邀请了 %s 个人" % (code, count)
+    
 
 ############################ Keyboards #########################################
-def main_menu_keyboard(*args):
-  language = ''
-  if len(args) == 1:
-      language = args[0]
-  menu_en = ['Join NKN group','Refer a friend', 'Documents', 'My Account', 'Language']
-  menu_cn = ['加入NKN', '邀请朋友', '文档', '我的账户', '语言']
-  menu_mes = menu_en
-  LANG = language
-  if LANG == 'CN':
-      menu_mes = menu_cn
-  logger.info(LANG)
-  keyboard = [[InlineKeyboardButton(menu_mes[0], callback_data='joinNKN')],
-              [InlineKeyboardButton(menu_mes[1], callback_data='refer')],
-              [InlineKeyboardButton(menu_mes[2], callback_data='doc')],
-              [InlineKeyboardButton(menu_mes[3], callback_data='myAccount'), InlineKeyboardButton(menu_mes[4], callback_data='Lang')]]
-  return InlineKeyboardMarkup(keyboard)
+def main_menu_keyboard():
+    keyboard = [[InlineKeyboardButton('Join NKN group', callback_data='joinNKN')],
+                [InlineKeyboardButton('Refer a friend', callback_data='refer')],
+                [InlineKeyboardButton('Documents', callback_data='doc')],
+                [InlineKeyboardButton('My Account', callback_data='myAccount'), InlineKeyboardButton('Language', callback_data='Lang')]]
+    return InlineKeyboardMarkup(keyboard)
+
+def main_menu_keyboard_CN():
+    keyboard = [[InlineKeyboardButton('加入NKN', callback_data='joinNKNCN')],
+              [InlineKeyboardButton('邀请朋友', callback_data='referCN')],
+              [InlineKeyboardButton('文档', callback_data='docCN')],
+              [InlineKeyboardButton('我的账户', callback_data='myAccountCN'), InlineKeyboardButton('语言', callback_data='Lang')]]
+    return InlineKeyboardMarkup(keyboard)
 
 def language_menu_keyboard():
-    keyboard = [[InlineKeyboardButton('English', callback_data='EN'), InlineKeyboardButton('中文', callback_data='CN')],
-                [InlineKeyboardButton('Back', callback_data='main')]
-    ]
+    keyboard = [[InlineKeyboardButton('English', callback_data='EN'), InlineKeyboardButton('中文', callback_data='CN')]]
     return InlineKeyboardMarkup(keyboard)
 
-def joinNKN_menu_keyboard():
+def back_menu_keyboard_CN():
+    keyboard = [[InlineKeyboardButton('返回', callback_data='mainCN')]]
+    return InlineKeyboardMarkup(keyboard)
+
+def back_menu_keyboard():
     keyboard = [[InlineKeyboardButton('Back', callback_data='main')]]
     return InlineKeyboardMarkup(keyboard)
+
+
 
 # @bot.message_handler(commands=['faq'])
 # def send_faq(message):
@@ -267,7 +356,6 @@ def joinNKN_menu_keyboard():
 #     except Exception as e:
 #         logger.error('/faq ERROR: %s', e)
 
-# @bot.message_handler(content_types=['new_chat_members'])
 def record_new_members(bot, update):
     logger.info(update.message)
     message = update.message
@@ -299,7 +387,7 @@ def record_new_members(bot, update):
                             member.username, 
                             member.first_name,
                             member.id,
-                            "None"
+                            ""
                         ]
                         insertRow(new_members_wks, new_member_info) # record new member's infomation
                 except Exception as e:
@@ -362,7 +450,6 @@ def handle_invite_code(message):
                 )
             else:
                 logger.info("You aren't a new member of NKN group.")
-                message.reply_text("You aren't a new member of NKN group.")
                 reply_two_languages(message, "You aren't a new member of NKN group.", "你不是一个新加群的用户, 无法使用邀请码")
         except Exception as e:
             raise
@@ -517,21 +604,22 @@ def getPoints(bot, from_user):
     #findKey will return the row number
     #arr = new_members_wks.find(str(from_user.id))
     row = findKey(new_members_wks, str(from_user.id))
-    logger.info(row)
+    logger.info("Get points for user on row %s" %row)
     if row != -1:
-        ref = new_members_wks.get_value((row, 5))
-        logger.info(ref)
-        if ref != 'None':
+        ref = new_members_wks[row-1][4]
+        logger.info("User's refer code:%s" %ref)
+        if ref != "":
             points = points + 100
     
     #get user invite count
     #arr = invite_wks.find(str(from_user.id))
     row = findKey(invite_wks, str(from_user.id))
     if row != -1:
-        count = invite_wks.get_value((row, 6))
-        logger.info(count)
+        count = invite_wks[row-1][5]
+        logger.info("User invited %s friends" %count)
         if count != '':
             points = points + 100*int(count)
+    invite_wks.update_cell((row, 7), points)
     return points
 
 def echoMessageHandler(bot, update):
@@ -557,7 +645,7 @@ def main():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(CommandHandler('help', help))
+    dp.add_handler(CommandHandler('start1', start1))
     dp.add_handler(CommandHandler('points', points))
     dp.add_handler(CommandHandler('reward_addr', reward_addr))
     # on noncommand i.e message - echo the message on Telegram
@@ -565,11 +653,20 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, record_new_members))
 
     # menu handler
+    
+    dp.add_handler(CallbackQueryHandler(main_menu_CN, pattern='mainCN'))
+    dp.add_handler(CallbackQueryHandler(join_menu_CN, pattern='joinNKNCN'))
+    dp.add_handler(CallbackQueryHandler(refer_menu_CN, pattern='referCN'))
+    dp.add_handler(CallbackQueryHandler(doc_menu_CN, pattern='docCN'))
+    dp.add_handler(CallbackQueryHandler(myAccount_menu_CN, pattern='myAccountCN'))
+
     dp.add_handler(CallbackQueryHandler(main_menu, pattern='main'))
     dp.add_handler(CallbackQueryHandler(join_menu, pattern='joinNKN'))
     dp.add_handler(CallbackQueryHandler(refer_menu, pattern='refer'))
     dp.add_handler(CallbackQueryHandler(doc_menu, pattern='doc'))
     dp.add_handler(CallbackQueryHandler(myAccount_menu, pattern='myAccount')) 
+
+
     dp.add_handler(CallbackQueryHandler(lang_menu, pattern='Lang')) 
     dp.add_handler(CallbackQueryHandler(en_menu, pattern='EN')) 
     dp.add_handler(CallbackQueryHandler(cn_menu, pattern='CN')) 
