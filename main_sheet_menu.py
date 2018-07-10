@@ -132,20 +132,29 @@ def reward_addr(bot, update):
 # /reward_addr : check current reward address
 def check_reward_addr(message):
     try:
+        #two ways get value from worksheet
+        #invite_wks.get_value((row, col))   this will get error when the cell is empty
+        #invite_wks[row-1][col]    for this method row has to minus one to get the right record, because array started at 0
+        #addr = invite_wks.get_value((row, 8))
+        #logger.info(addr)
         row = findKey(invite_wks, str(message.from_user.id))
-        if row != -1:
-            addr = invite_wks.get_value((row, 8))
-            print(addr)
+        logger.info(row)
+        addr = invite_wks[row-1][7]
+        logger.info(addr)
+        
+        if row == -1:
+            logger.info(row)
+            en_reply = "You haven't join the program yet."
+            cn_reply = u"您还没有加入积分项目，请先注册"
+            reply_two_languages(message, en_reply, cn_reply)
+
+        if addr != "":
             en_reply = "Your current reward address is %s\nIf you want to change the address, you can reply a new address to the bot." % addr
             cn_reply = u"当前设置的接受奖励的钱包地址为: %s\n如果你想更换钱包地址，可以给机器人回复一个新的地址" % addr 
-            message.reply_text(en_reply)
-            #reply_two_languages(message, en_reply, cn_reply)
+            reply_two_languages(message, en_reply, cn_reply)
         else:
-
             en_reply = "You haven't set your reward address yet. You can reply your wallet address to the bot to set it."
             cn_reply = "你还未设置用于接受奖励的钱包地址，你可以通过给机器人发送钱包地址来进行设置"
-            en_reply = "You haven't register for the program yet"
-            message.reply_text(en_reply)
             reply_two_languages(message, en_reply, cn_reply)
     except Exception as e:
         logger.error('get reward address ERROR: %s', e)
@@ -487,9 +496,9 @@ def getFaqList():
 
 def reply_two_languages(message, en_reply, cn_reply):
     if message.from_user.language_code == "zh-CN":
-        bot.reply_to(message, cn_reply)
+        message.reply_text(cn_reply)
     else:
-        bot.reply_to(message, en_reply)
+        message.reply_text(en_reply)
 
 def timestamp_datetime(value):
     format = '%Y-%m-%d %H:%M:%S'
