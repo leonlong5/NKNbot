@@ -16,9 +16,6 @@ def main_menu_message_CN():
 def joinNKN_menu_message():
     return 'English: https://t.me/nknorg \n中文群: https://t.me/nknorgCN'
 
-def second_menu_message():
-    return 'Choose the submenu in second menu:'
-
 def refer_menu_message(code, count):
     #link = "https://t.me/NKNrobot?start="+code
     return "Your invite code is:  %s \nYou have already invited %s people" % (code, count)
@@ -26,3 +23,29 @@ def refer_menu_message(code, count):
 def refer_menu_message_CN(code, count):
     #link = "https://t.me/NKNrobot?start="+code
     return u"你的邀请码是:  %s\n你已经邀请了 %s 个人" % (code, count)
+
+def NKN_doc_CN():
+    return """📖基本文档
+NKN 英文白皮书: t.me/nknorg/43545 
+NKN 经济模型: t.me/nknorg/35053
+NKN产品路线图：https://t.me/nknorgCN/19949
+AMA Apr 2018: t.me/nknorg/43548 
+
+🎭社交媒体
+Telegram Channels:
+    News: https://t.me/nknetwork
+    English Channel:https://t.me/nknorg
+    Chinese Channel: https://t.me/nknorgCN
+Twitter: https://twitter.com/NKN_ORG/
+Github:https://github.com/nknorg
+Medium: https://medium.com/nknetwork
+Facebook: https://www.facebook.com/nkn.org
+Reddit:https://www.reddit.com/r/nknblockchain/
+微信公众号：NKN_News
+
+🎬NKN视频
+AMA: https://www.youtube.com/watch?v=u7K0NeTeB3M&t=129s
+NEO Global Capital介绍NKN项目: https://youtu.be/_yQGHFIaqhg?t=15m35s
+Boxmining对NKN创始人访谈: https://www.youtube.com/watch?v=o95Uu4m_hXw&feature=youtu.be
+Boxmining介绍NKN项目: https://www.youtube.com/watch?v=aFR9k8IPEdw&feature=youtu.be
+AMTV介绍NKN项目:https://youtu.be/vYRCW7hTN4E"""
