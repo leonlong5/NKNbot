@@ -43,6 +43,11 @@ from menuMessages import *
 def start(bot, update, args):
     userArgs = "".join(args)
     logger.info("User start event, if they are from refer link, code is : %s" %userArgs)
+    logger.info(update.message)
+    if userArgs != "":
+        message = update.message
+        message.text = userArgs
+        handle_invite_code(message)
     update.message.reply_text(main_menu_message(),
                             reply_markup=main_menu_keyboard())
 
