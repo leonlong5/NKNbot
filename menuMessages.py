@@ -18,11 +18,11 @@ def joinNKN_menu_message():
 
 def refer_menu_message(code, count):
     link = "https://t.me/NKNrobot?start="+code
-    return "Your invite link is:\n  %s \nYou have already invited %s people" % (link, count)
+    return "Your invite link is:\n%s \nYou have already invited %s people" % (link, count)
 
 def refer_menu_message_CN(code, count):
     link = "https://t.me/NKNrobot?start="+code
-    return u"你的邀请连接是:\n  %s\n你已经邀请了 %s 个人" % (link, count)
+    return u"你的邀请连接是:\n%s\n你已经邀请了 %s 个人" % (link, count)
 
 def NKN_doc_CN():
     return """📖基本文档

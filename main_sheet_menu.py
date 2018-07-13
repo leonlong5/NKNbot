@@ -42,8 +42,8 @@ from menuMessages import *
 ############################### Menu event handler #########################################################################
 def start(bot, update, args):
     userArgs = "".join(args)
-    logger.info("User start event, if they are from refer link, code is : %s" %userArgs)
-    logger.info(update.message)
+    logger.info("User start event, if user is from refer link, code is : %s" %userArgs)
+    #logger.info(update.message)
     if userArgs != "":
         message = update.message
         message.text = userArgs
@@ -112,36 +112,61 @@ def doc_menu_CN(bot, update):
 def myAccount_menu(bot, update):
     try:
         logger.info('/myAccount')
-        #query = vars(update.callback_query)
-        logger.info(update.callback_query.from_user)
         query = update.callback_query
-        from_user = update.callback_query.from_user
-        account = getAccount(from_user.id) 
-        if account == -1:
-            reply = "You haven't join NKN group."
+        from_user = query.from_user
+        logger.info(from_user)
+        invite_row_key = findKey(invite_wks, str(from_user.id))
+        new_member_key = findKey(new_members_wks, str(from_user.id))
+        logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
+        #get data
+        invite_row_data = []
+        new_member_data = []
+        if invite_row_key != -1:
+            start = time.time()
+            invite_row_data = invite_wks.get_row(invite_row_key)
+            end = time.time()
+            print(end-start)
+        logger.info("Get user invite sheet row data: %s" %invite_row_data)
+        if new_member_key != -1:
+            new_member_data = new_members_wks.get_row(new_member_key)
+        logger.info("Get user new member sheet row data: %s" %new_member_data)
+        if invite_row_key == -1:
+            #need to verify their status
+            reply = "You haven't join the program yet, please get your refer link first."
         else:
-            points = getPoints(bot, from_user)
-            reply = "Hello %s\nYou invited %s friends\nYou have %s points" %(account[0], account[1],points)
+            points = getPoints(invite_row_data, new_member_data, invite_row_key)
+            reply = u"Hello %s\nYou invited %s friends\nYou have %s points" %(invite_row_data[0], invite_row_data[5], points)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
                     text=reply,
                     reply_markup=back_menu_keyboard())
     except Exception as e:
         logger.error('/myAccount ERROR: %s', e)
-        
+
 def myAccount_menu_CN(bot, update):
     try:
-        logger.info('/myAccount')
-        #query = vars(update.callback_query)
-        logger.info(update.callback_query.from_user)
+        logger.info('/myAccount_CN')
         query = update.callback_query
-        from_user = update.callback_query.from_user
-        account = getAccount(from_user.id) 
-        if account == -1:
-            reply = "你还没有加入NKN群"
+        from_user = query.from_user
+        logger.info(from_user)
+        invite_row_key = findKey(invite_wks, str(from_user.id))
+        new_member_key = findKey(new_members_wks, str(from_user.id))
+        logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
+        #get data
+        invite_row_data = []
+        new_member_data = []
+        if invite_row_key != -1:
+            invite_row_data = invite_wks.get_row(invite_row_key)   
+        logger.info("Get user invite sheet row data: %s" %invite_row_data)
+        if new_member_key != -1:
+            new_member_data = new_members_wks.get_row(new_member_key)
+        logger.info("Get user new member sheet row data: %s" %new_member_data)
+        if invite_row_key == -1:
+            #need to verify their status
+            reply = "你还没有加入这个项目，请先获得你的邀请链接"
         else:
-            points = getPoints(bot, from_user)
-            reply = u"您好 %s\n您目前已经邀请了 %s 位朋友\n你现在一共有 %s 分" %(account[0], account[1],points)
+            points = getPoints(invite_row_data, new_member_data, invite_row_key)
+            reply = u"您好 %s\n您目前已经邀请了 %s 位朋友\n你现在一共有 %s 分" %(invite_row_data[0], invite_row_data[5], points)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
                     text=reply,
@@ -188,11 +213,10 @@ def cn_menu(bot, update):
 def refer_menu(bot, update):
     try:
         lock.acquire()
-        logger.info('/invite')
-        logger.info(update.callback_query.message.chat)
         from_user = update.callback_query.message.chat
         code = generateInviteCode("NKN", from_user.id)
         count = getInviteCount(str(from_user.id))
+        logger.info("User %s request refer code:%s "%(from_user.username, code))
         #when invite count is empty, we create a new user in invite worksheet
         if count == "":
             values = [
@@ -205,25 +229,25 @@ def refer_menu(bot, update):
             ]
             insertRow(invite_wks, values)
             count = "0"
-        
+        else:
+            query = update.callback_query
+            bot.edit_message_text(chat_id=query.message.chat_id,
+                                message_id=query.message.message_id,
+                                text=refer_menu_message(code, count),
+                                reply_markup=back_menu_keyboard())
     except Exception as e:
         logger.error('/invite ERROR: %s', e)
     finally:
         lock.release()
-    query = update.callback_query
-    bot.edit_message_text(chat_id=query.message.chat_id,
-                        message_id=query.message.message_id,
-                        text=refer_menu_message(code, count),
-                        reply_markup=back_menu_keyboard())
 
 def refer_menu_CN(bot, update):
     try:
         lock.acquire()
-        logger.info('/invite')
         logger.info(update.callback_query.message.chat)
         from_user = update.callback_query.message.chat
         code = generateInviteCode("NKN", from_user.id)
         count = getInviteCount(str(from_user.id))
+        logger.info("User %s request refer code:%s "%(from_user.username, code))
         #when invite count is empty, we create a new user in invite worksheet
         if count == "":
             values = [
@@ -246,22 +270,6 @@ def refer_menu_CN(bot, update):
                         message_id=query.message.message_id,
                         text=refer_menu_message_CN(code, count),
                         reply_markup=back_menu_keyboard_CN())
-    
-# @bot.message_handler(commands=['faq'])
-# def send_faq(message):
-#     try:
-#         logger.info('/faq')
-#         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-#         reply = "Questions list:\n"
-#         faq_list = getFaqList()
-#         for question in faq_list:
-#             itembtn = types.KeyboardButton(question)
-#             markup.add(itembtn)
-#             reply = reply + "\n" + question
-#         bot.send_message(message.chat.id, reply, reply_markup=markup)
-#     except Exception as e:
-#         logger.error('/faq ERROR: %s', e)
-
 
 
 ############################ methods help with database search, insert, update ######################################################################
@@ -316,17 +324,6 @@ def getInviteCount(key):
     else:
         return ""
 
-# find user info based on user id
-def getAccount(key):
-    print(key)
-    row = findKey(invite_wks, str(key))
-    print(row)
-    if row != -1:
-        # return reply_wks[row-1][0]
-        return [invite_wks.get_value((row, 1)), invite_wks.get_value((row, 6))] # 第一和六列作为回复
-    else:
-        return -1
-
 # find the corresponding reply in google doc by given key word
 def getValue(key):
     row = findKey(reply_wks, key)
@@ -345,29 +342,29 @@ def getFaqList():
         faq_list.append(question.value)
     return faq_list
 
-def getPoints(bot, from_user):
+def getPoints(invite_row_data, new_member_data, invite_row_key):
     points = 0
-    #check if user is in new invited list
-    #find will return an array contains cell qulify the key
-    #findKey will return the row number
-    #arr = new_members_wks.find(str(from_user.id))
-    row = findKey(new_members_wks, str(from_user.id))
-    logger.info("Get points for user on row %s" %row)
-    if row != -1:
-        ref = new_members_wks[row-1][4]
+    #check if user used a refer code 
+    if new_member_data:
+        ref = new_member_data[4]
         logger.info("User's refer code:%s" %ref)
         if ref != "":
             points = points + 100
-    
     #get user invite count
-    #arr = invite_wks.find(str(from_user.id))
-    row = findKey(invite_wks, str(from_user.id))
-    if row != -1:
-        count = invite_wks[row-1][5]
+    if invite_row_data:
+        count = invite_row_data[5]
+        cur_points = invite_row_data[6]
+        if cur_points != "":
+            cur_points = int(cur_points)
+        else:
+            cur_points = 0
         logger.info("User invited %s friends" %count)
-        if count != '':
+        if count != 0:
             points = points + 100*int(count)
-    invite_wks.update_cell((row, 7), points)
+
+        if points != cur_points:
+            logger.info("Update points in db if they are not the same %s | %s"%(points, cur_points))
+            invite_wks.update_cell((invite_row_key, 7), points)
     return points
 
 ##################################################  command, message handler functions  ###############################################################
@@ -400,8 +397,8 @@ def handle_invite_code(message):
         try:
             lock.acquire()
             #check if user already exists in our db
-            exist = findUser(new_members_wks, str(message.chat.id))
-            if exist == 1:
+            exist = findKey(new_members_wks, str(message.from_user.id))
+            if exist == -1:
                 #new user, need to create new account, insert to new_members_wks
                 new_member_info = [
                         json_serial(message.date), 
@@ -505,22 +502,8 @@ def record_new_members(bot, update):
                 try:
                     lock.acquire()
                     logger.info(member)
-                    if findKey(new_members_wks, str(member.id)) == -1: # avoid recording users that have already existed
-                        # code = ""
-                        # if message.from_user.id != member.id:  # someone invites a new member
-                        #     from_user = message.from_user
-                        #     logger.info(from_user)
-                        #     code = generateInviteCode("NKN", from_user.id)
-                        #     if addInviteCount(code) == -1: # inviter hasn't registered yet
-                        #         from_user_info = [
-                        #             from_user.username,
-                        #             from_user.first_name,
-                        #             from_user.last_name,
-                        #             from_user.id,
-                        #             code, 
-                        #             1
-                        #         ]
-                        #         insertRow(invite_wks, from_user_info) # register inviter
+                    row = findKey(new_members_wks, str(member.id))
+                    if row == -1: # avoid recording users that have already existed
                         new_member_info = [
                             json_serial(message.date),
                             member.username, 
@@ -529,6 +512,17 @@ def record_new_members(bot, update):
                             ""
                         ]
                         insertRow(new_members_wks, new_member_info) # record new member's infomation
+                    else: #handle user are already in our new member database #two conditions, joined by themself or joined by refer link
+                        logger.info(member.id)
+                        row = findKey(new_members_wks, str(member.id))
+                        logger.info(row)
+                        code = new_members_wks[row-1][4]
+                        code1 = new_members_wks.get_value(((row, 5)))
+                        logger.info("code: %s" %code)
+                        logger.info("code1: %s" %code1)
+                        if code != "": #user used the code then joined the group
+                           logger.info("verify user joined group after using a refer code")
+                           new_members_wks.update_cell((row, 6), "Verified") 
                 except Exception as e:
                     raise
                 finally:
@@ -536,9 +530,19 @@ def record_new_members(bot, update):
     except Exception as e:
         logger.error('record new members ERROR: %s', e)
 
-#get points from /points
-def points(bot, update):
-    update.message.reply_text(getPoints(bot, update.message.from_user))
+def send_faq(bot, update):
+    try:
+        logger.info('/faq')
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        reply = "Questions list:\n"
+        faq_list = getFaqList()
+        for question in faq_list:
+            itembtn = types.KeyboardButton(question)
+            markup.add(itembtn)
+            reply = reply + "\n" + question
+        bot.sendMessage(chat_id = update.message.chat.id , text = reply , reply_markup=markup)
+    except Exception as e:
+        logger.error('/faq ERROR: %s', e)
 
 ########################################################## App entry #################################################################################
 def main():
@@ -552,8 +556,8 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler('start', start, pass_args=True))
     dp.add_handler(CommandHandler('start1', start1))
-    dp.add_handler(CommandHandler('points', points))
     dp.add_handler(CommandHandler('reward_addr', reward_addr))
+    #dp.add_handler(CommandHandler('faq', send_faq))
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echoMessageHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, record_new_members))
