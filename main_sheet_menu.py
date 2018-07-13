@@ -115,8 +115,8 @@ def myAccount_menu(bot, update):
         query = update.callback_query
         from_user = query.from_user
         logger.info(from_user)
-        invite_row_key = findKey(invite_wks, str(from_user.id))
-        new_member_key = findKey(new_members_wks, str(from_user.id))
+        invite_row_key = findKey("invite_wks", str(from_user.id))
+        new_member_key = findKey("new_members_wks", str(from_user.id))
         logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
         #get data
         invite_row_data = []
@@ -145,12 +145,13 @@ def myAccount_menu(bot, update):
 
 def myAccount_menu_CN(bot, update):
     try:
+        lock.acquire()
         logger.info('/myAccount_CN')
         query = update.callback_query
         from_user = query.from_user
         logger.info(from_user)
-        invite_row_key = findKey(invite_wks, str(from_user.id))
-        new_member_key = findKey(new_members_wks, str(from_user.id))
+        invite_row_key = findKey1(3, str(from_user.id))
+        new_member_key = findKey1(1, str(from_user.id))
         logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
         #get data
         invite_row_data = []
@@ -173,6 +174,8 @@ def myAccount_menu_CN(bot, update):
                     reply_markup=back_menu_keyboard_CN())
     except Exception as e:
         logger.error('/myAccount ERROR: %s', e)
+    finally:
+        lock.release()
 
 def lang_menu(bot, update):
     try:
@@ -284,7 +287,13 @@ def findUser(wks, key):
 def findKey(wks, key):
     # pattern = re.compile("^" + key, re.I) # ignore case
     # cell_list = wks.find(pattern)
-    cell_list = wks.find(key)
+    cell_list = ""
+    if wks == "invite_wks":
+        cell_list = invite_wks.find(key)
+    if wks == "new_members_wks":
+        cell_list = new_members_wks.find(key)
+    if wks == "reply_wks":
+        cell_list = reply_wks.find(key)
     if len(cell_list) == 0:
         return -1
     else:
@@ -297,7 +306,7 @@ def insertRow(wks, values, end_flag='--END--'):
 
 def checkCodeExistence(code):
     print(code)
-    row = findKey(invite_wks, code)
+    row = findKey("invite_wks", code)
     print(row)
     
     row = invite_wks.find(code)
@@ -308,7 +317,7 @@ def checkCodeExistence(code):
         return True
 
 def addInviteCount(code):
-    row = findKey(invite_wks, code)
+    row = findKey("invite_wks", code)
     if row != -1:
         count = invite_wks[row-1][5]
         count = int(count) + 1  
@@ -318,7 +327,7 @@ def addInviteCount(code):
         return -1
 
 def getInviteCount(key):
-    row = findKey(invite_wks, key)
+    row = findKey("invite_wks", key)
     if row != -1:
         return invite_wks[row-1][5] # 第六列作为回复
     else:
@@ -326,7 +335,7 @@ def getInviteCount(key):
 
 # find the corresponding reply in google doc by given key word
 def getValue(key):
-    row = findKey(reply_wks, key)
+    row = findKey("reply_wks", key)
     if row != -1:
         # return reply_wks[row-1][0]
         return reply_wks.get_value((row, 1)) # 第一列作为回复
@@ -397,7 +406,7 @@ def handle_invite_code(message):
         try:
             lock.acquire()
             #check if user already exists in our db
-            exist = findKey(new_members_wks, str(message.from_user.id))
+            exist = findKey("new_members_wks", str(message.from_user.id))
             if exist == -1:
                 #new user, need to create new account, insert to new_members_wks
                 new_member_info = [
@@ -436,7 +445,7 @@ def handle_reward_addr(message):
         #message = vars(message)
         logger.info(message.from_user)
         from_user = message.from_user
-        row = findKey(invite_wks, str(from_user.id))
+        row = findKey("invite_wks", str(from_user.id))
         if row != -1:
             invite_wks.update_cell((row, 8), message.text)
             message.reply_text("Reward address is set successfully!\nYou can type /reward_addr to check your current reward address.")
@@ -470,7 +479,7 @@ def check_reward_addr(message):
         #invite_wks[row-1][col]    for this method row has to minus one to get the right record, because array started at 0
         #addr = invite_wks.get_value((row, 8))
         #logger.info(addr)
-        row = findKey(invite_wks, str(message.from_user.id))
+        row = findKey("invite_wks", str(message.from_user.id))
         logger.info(row)
         addr = invite_wks[row-1][7]
         logger.info(addr)
@@ -502,7 +511,7 @@ def record_new_members(bot, update):
                 try:
                     lock.acquire()
                     logger.info(member)
-                    row = findKey(new_members_wks, str(member.id))
+                    row = findKey("new_members_wks", str(member.id))
                     if row == -1: # avoid recording users that have already existed
                         new_member_info = [
                             json_serial(message.date),
@@ -513,8 +522,6 @@ def record_new_members(bot, update):
                         ]
                         insertRow(new_members_wks, new_member_info) # record new member's infomation
                     else: #handle user are already in our new member database #two conditions, joined by themself or joined by refer link
-                        logger.info(member.id)
-                        row = findKey(new_members_wks, str(member.id))
                         logger.info(row)
                         code = new_members_wks[row-1][4]
                         code1 = new_members_wks.get_value(((row, 5)))
