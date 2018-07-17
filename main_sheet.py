@@ -633,7 +633,7 @@ def main():
     #dp.add_handler(CommandHandler('test', test))
     #dp.add_handler(CommandHandler('faq', send_faq))
     # on noncommand i.e message - echo the message on Telegram
-    #dp.add_handler(MessageHandler(Filters.text, echoMessageHandler))
+    dp.add_handler(MessageHandler(Filters.text, echoMessageHandler))
     #dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, record_new_members))
 
     # menu handler
