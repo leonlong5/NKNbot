@@ -151,7 +151,6 @@ def myAccount_menu(bot, update):
         logger.info(from_user)
         gc = pygsheets.authorize(outh_file=OUTH_FILE)
         sh = gc.open('NKNbot') # Open spreadsheet and then workseet
-        new_members_wks_thrend = sh.worksheet(value=1)
         invite_wks_thrend = sh.worksheet(value=3)
         #get user invite sheet row number by userID
         cell_list = []
@@ -159,30 +158,21 @@ def myAccount_menu(bot, update):
         invite_row_key = -1
         if len(cell_list) != 0:
             invite_row_key = cell_list[0].row
-        #get user new memmber sheet row number by userID
-        cell_list = []
-        cell_list = new_members_wks_thrend.find(str(from_user.id))
-        new_member_key = -1
-        if len(cell_list) != 0:
-            new_member_key = cell_list[0].row
-        if invite_row_key == -1 and new_member_key == -1:
-            #if not in both sheets, we just give them 0 points
+        reply = "Hello %sYou invited 0 friends\nYou have 0 points"%from_user.username
+        if invite_row_key == -1:
+            #if not in sheet, we just give them 0 points=
+            logger.info("User not found.")
             reply = "Hello %sYou invited 0 friends\nYou have 0 points"%from_user.username
         else:
-            logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
+            logger.info("Get user invite sheet row: %s " %(invite_row_key))
             #get data
             invite_row_data = []
-            new_member_data = []
-            invite_count = 0
-            if invite_row_key != -1:
-                invite_row_data = invite_wks_thrend.get_row(invite_row_key)
-                invite_count = invite_row_data[5]
-                logger.info("Get user invite sheet row data: %s" %invite_row_data)
-            if new_member_key != -1:
-                new_member_data = new_members_wks_thrend.get_row(new_member_key)
-                logger.info("Get user new member sheet row data: %s" %new_member_data)
+            points = 0
+            invite_row_data = invite_wks_thrend.get_row(invite_row_key)
+            points = invite_row_data[10]
+            invite_count = int(int(points) / 100)
+            logger.info("Get user invite sheet row data: %s" %invite_row_data)
             #caculate user points
-            points = getPoints(invite_row_data, new_member_data, invite_row_key, invite_wks_thrend)
             reply = u"Hello %s\nYou invited %s friends\nYou have %s points" %(from_user.username, invite_count, points)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
@@ -200,7 +190,6 @@ def myAccount_menu_CN(bot, update):
         logger.info(from_user)
         gc = pygsheets.authorize(outh_file=OUTH_FILE)
         sh = gc.open('NKNbot') # Open spreadsheet and then workseet
-        new_members_wks_thrend = sh.worksheet(value=1)
         invite_wks_thrend = sh.worksheet(value=3)
         #get user invite sheet row number by userID
         cell_list = []
@@ -208,30 +197,20 @@ def myAccount_menu_CN(bot, update):
         invite_row_key = -1
         if len(cell_list) != 0:
             invite_row_key = cell_list[0].row
-        #get user new memmber sheet row number by userID
-        cell_list = []
-        cell_list = new_members_wks_thrend.find(str(from_user.id))
-        new_member_key = -1
-        if len(cell_list) != 0:
-            new_member_key = cell_list[0].row
-        if invite_row_key == -1 and new_member_key == -1:
+        reply = "Hello %sYou invited 0 friends\nYou have 0 points"%from_user.username
+        if invite_row_key == -1:
             #if not in both sheets, we just give them 0 points
             reply = "您好 %s\n您目前已经邀请了0位朋友\n你现在一共有0分"%from_user.username
         else:
-            logger.info("Get user invite sheet row: %s , new member sheet row: %s" %(invite_row_key, new_member_key))
+            logger.info("Get user invite sheet row: %s" %(invite_row_key))
             #get data
             invite_row_data = []
-            new_member_data = []
-            invite_count = 0
-            if invite_row_key != -1:
-                invite_row_data = invite_wks_thrend.get_row(invite_row_key)
-                invite_count = invite_row_data[5]
-                logger.info("Get user invite sheet row data: %s" %invite_row_data)
-            if new_member_key != -1:
-                new_member_data = new_members_wks_thrend.get_row(new_member_key)
-                logger.info("Get user new member sheet row data: %s" %new_member_data)
-            #check if user regestered the program(in the invite count sheet)
-            points = getPoints(invite_row_data, new_member_data, invite_row_key, invite_wks_thrend)
+            points = 0
+            invite_row_data = invite_wks_thrend.get_row(invite_row_key)
+            points = invite_row_data[10]
+            invite_count = int(int(points) / 100)
+            logger.info("Get user invite sheet row data: %s" %invite_row_data)
+            #caculate user points
             reply = u"您好 %s\n您目前已经邀请了 %s 位朋友\n你现在一共有 %s 分" %(from_user.username, invite_count, points)
         bot.edit_message_text(chat_id=query.message.chat_id,
                     message_id=query.message.message_id,
