@@ -5,3 +5,6 @@ sheets.googleapis.com-python.json
 NKN.json
 NKNCN.json
 *.json
+nkn.db
+database.py
+githubRepo.py
