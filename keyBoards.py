@@ -3,7 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 ############################ Keyboards #########################################
 def main_menu_keyboard():
     keyboard = [[InlineKeyboardButton('Join NKN group', callback_data='joinNKN')],
-                [InlineKeyboardButton('Refer friends', callback_data='refer')],
+                [InlineKeyboardButton('Refer a friend', callback_data='refer')],
                 [InlineKeyboardButton('Documents', callback_data='doc')],
                 [InlineKeyboardButton('My Account', callback_data='myAccount'), InlineKeyboardButton('Language', callback_data='Lang')]]
     return InlineKeyboardMarkup(keyboard)

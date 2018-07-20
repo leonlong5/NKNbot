@@ -302,7 +302,7 @@ def handle_invite_code(message):
         new_member_data = c.execute("SELECT * FROM NEW_MEMBERS WHERE ID=?", (userID, )).fetchone()
         old_groupCN_user_data = c.execute("SELECT * FROM NKN_GROUP_USER_CN WHERE ID=?", (userID, )).fetchone()
         old_groupEN_user_data = c.execute("SELECT * FROM NKN_GROUP_USER_EN WHERE ID=?", (userID, )).fetchone()
-        if all(v is None for v in [user_data, new_member_data]):
+        if all(v is None for v in [user_data, new_member_data, old_groupEN_user_data, old_groupCN_user_data]):
             logger.info("User verified as new user, not in our database.")
         else:
             logger.info("User are not a new member.")
@@ -434,6 +434,8 @@ def record_new_members(bot, update):
                         print(inviter_data)
                         inviter_id = inviter_data[0]
                         inviter_count = inviter_data[5]+1
+                        if inviter_count > 100:
+                            inviter_count = 100
                         invite_points = inviter_count * 100
                         invite_total_points = invite_points + inviter_data[7]
                         t = (inviter_count, invite_points, invite_total_points, inviter_id)
@@ -471,8 +473,8 @@ def record_new_members(bot, update):
 def main():
     """Start the bot."""
     # Create the EventHandler and pass it with bot's token.
-    updater = Updater("584897065:AAFKH1nl68ntLw8L8LeHxNmfd6gGUP0yLuY")
-    #updater = Updater(TOKEN, workers=32)
+    #updater = Updater("584897065:AAFKH1nl68ntLw8L8LeHxNmfd6gGUP0yLuY")
+    updater = Updater(TOKEN, workers=32)
     
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
